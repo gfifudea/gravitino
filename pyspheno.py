@@ -3,6 +3,10 @@ import numpy as np
 
 
 #call spheno with fit on to obtain mu and vd
+
+import commands
+lsout=commands.getoutput('ls')
+
 vd=200.
 
 mu=400.
