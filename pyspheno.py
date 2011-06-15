@@ -2,11 +2,38 @@
 import numpy as np
 import commands
 import pyslha
-#call spheno with fit on to obtain mu and vd
-global sphenocmd
+
+global sphenocmd,LesHouches
 sphenocmd='SPheno_intel'
 
+def dictinputfile():
+    """generate LesHouches.in"""
+    #Initialize dictionary of block clases
+    LesHouches={}
+    #define block class
+    MODSEL=pyslha.Block('MODSEL')
+    #Add entrires to the class
+    MODSEL.entries[1]=1
+    #Add class to dictionary
+    LesHouches['MODSEL']=MODSEL
+    #====================
+    SMINPUTS=pyslha.Block('SMINPUTS')   # Standard Model inputs
+    SMINPUTS.entries[1]=   1.279340E+02       # alpha_rm^-1(M_Z), MSbar, SM
+    SMINPUTS.entries[2]=   1.166390E-05       # G_F, Fermi constant
+    SMINPUTS.entries[3]=   1.172000E-01       # alpha_s(MZ) SM MSbar
+    SMINPUTS.entries[4]=   9.118760E+01       # Z-boson pole mass
+    SMINPUTS.entries[5]=   4.250000E+00       # m_b(mb) SM MSbar
+    SMINPUTS.entries[6]=   1.727000E+02       # m_top(pole)
+    SMINPUTS.entries[7]=   1.777000E+00       # m_tau(pole)
+    LesHouches['SMINPUTS']=SMINPUTS
+    #====================
+    return LesHouches 
+
+#Set dictionary for input file as a global variable to avoid multiple calls
+LesHouches=dictinputfile()
+
 def oscilation(spcfile):
+    """oscilation parameters"""
     slha=pyslha.readSLHAFile(spcfile)
     #neutrino parameters
     Delta2m32=slha[0]['SPHENORP'].entries[7]
@@ -18,7 +45,7 @@ def oscilation(spcfile):
 
 
 def check_slha(spcfile):
-    '''Print neutrino parameters for input matrix
+    '''Print neutrino parameters for spcfile
     input: A array (n,n)
            the output of matrixUm.
     '''
@@ -63,6 +90,7 @@ def sphenorndm(epsmin,epsmax,Lammin,Lammax,mu,vd,sign):
     vi=(Lambda-eps*vd)/mu
 
 def random_search():
+    """DEBUG"""
     epsmax=np.array([1,1,1])
     epsmin=np.array([-1,-1,-1])
     Lammax=np.array([1,1,1])
@@ -73,29 +101,8 @@ def random_search():
 
 
 if __name__ == '__main__':
-    #generate LesHouches.in with fit on
-    #Initialize dictionary of block clases
-    LesHouches={}
-    #deine block class
-    MODSEL=pyslha.Block('MODSEL')
-    #Add entrires to the class
-    MODSEL.entries[1]=1
-    #Add class to dictionary
-    LesHouches['MODSEL']=MODSEL
-    #====================
-    SMINPUTS=pyslha.Block('SMINPUTS')   # Standard Model inputs
-    SMINPUTS.entries[1]=   1.279340E+02       # alpha_rm^-1(M_Z), MSbar, SM
-    SMINPUTS.entries[2]=   1.166390E-05       # G_F, Fermi constant
-    SMINPUTS.entries[3]=   1.172000E-01       # alpha_s(MZ) SM MSbar
-    SMINPUTS.entries[4]=   9.118760E+01       # Z-boson pole mass
-    SMINPUTS.entries[5]=   4.250000E+00       # m_b(mb) SM MSbar
-    SMINPUTS.entries[6]=   1.727000E+02       # m_top(pole)
-    SMINPUTS.entries[7]=   1.777000E+00       # m_tau(pole)
-    LesHouches['SMINPUTS']=SMINPUTS
-    #====================
-    
-    #Change some entry:
-    SMINPUTS.entries[1]=1.28E+02
+    #Change some entry of LesHouches dictionary:
+    LesHouches['SMINPUTS'].entries[1]=1.28E+02
     #Write SLHA file
     pyslha.writeSLHAFile('LesHouches_new.in',LesHouches,{})
     #obtain vd, and mu
