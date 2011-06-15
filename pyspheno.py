@@ -12,7 +12,7 @@ def dictinputfile():
     LesHouches={}
     #define block class
     MODSEL=pyslha.Block('MODSEL')
-    #Add entrires to the class
+    #Add entries to the class
     MODSEL.entries[1]=1
     #Add class to dictionary
     LesHouches['MODSEL']=MODSEL
