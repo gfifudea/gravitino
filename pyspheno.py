@@ -1,21 +1,40 @@
 #!/usr/bin/env python
 import numpy as np
+import scipy.optimize 
 import commands
 import pyslha
+import sys
 
-global sphenocmd,LesHouches
+global sphenocmd,LesHouches,decaysin
 sphenocmd='SPheno_intel'
 
-def dictinputfile():
-    """generate LesHouches.in"""
+LesHouches,decaysin=pyslha.readSLHAFile('LesHouches_MASS.in')
+#to modify the dictionary of clases:
+LesHouches['SPHENOINPUT'].entries[91]=0
+#to write the changes
+#pyslha.writeSLHAFile('LesHouches.in',LesHouches,decaysin)
+
+def changeLesHouchesinFile(x):
+    """Change specfic entries of the global dictionary:
+    LesHouches"""
+    for i in range(1,4):
+        LesHouches['RVKAPPAIN'].entries[i]=x[i-1]
+        LesHouches['RVSNVEVIN'].entries[i]=x[i+2]
+#    LesHouches['RVKAPPA'].entries[1]=x[1]
+
+#    pyslha.writeSLHAFile(lhinfile,LesHouches,decaysin)
+
+
+def buildslhafile():
+    """Usage of pyslha to generate one SLHA file"""
     #Initialize dictionary of block clases
-    LesHouches={}
+    slhafile={}
     #define block class
     MODSEL=pyslha.Block('MODSEL')
     #Add entries to the class
     MODSEL.entries[1]=1
     #Add class to dictionary
-    LesHouches['MODSEL']=MODSEL
+    slhafile['MODSEL']=MODSEL
     #====================
     SMINPUTS=pyslha.Block('SMINPUTS')   # Standard Model inputs
     SMINPUTS.entries[1]=   1.279340E+02       # alpha_rm^-1(M_Z), MSbar, SM
@@ -25,12 +44,11 @@ def dictinputfile():
     SMINPUTS.entries[5]=   4.250000E+00       # m_b(mb) SM MSbar
     SMINPUTS.entries[6]=   1.727000E+02       # m_top(pole)
     SMINPUTS.entries[7]=   1.777000E+00       # m_tau(pole)
-    LesHouches['SMINPUTS']=SMINPUTS
+    slhafile['SMINPUTS']=SMINPUTS
     #====================
-    return LesHouches 
+    return slhafile 
 
-#Set dictionary for input file as a global variable to avoid multiple calls
-LesHouches=dictinputfile()
+
 
 def oscilation(spcfile):
     """oscilation parameters"""
@@ -70,9 +88,11 @@ def chisq(x):
              x[3:6]
              '''
     eps=x[0:3]
-    Lam=x[3:6]
-    #generate LesHouches.in
-    #.....
+    vi=x[3:6]
+    #change LesHouches dictionary:
+    changeLesHouchesinFile(x)
+    #generate LesHouches file:
+    lha(LesHouches,'LesHouches.in')
     #Run Spheno
     lsout=commands.getoutput(sphenocmd)
     (Delta2m32,Delta2m21,s223,s212,U13)=oscilation('SPheno.spc')
@@ -98,23 +118,53 @@ def random_search():
     sign=False
     sgn=lambda n: (-1)**np.random.random_integers(1,2,n)
 
+def lha(xdict,lhinfile='LesHouches.in'):
+    "xdict is the dictionary"
+    sep = "     "
+    if type(lhinfile) is str:
+        lhwf=open(lhinfile,'w')
+    else:
+        sys.exit()
 
+    #write main blocks:
+    modsel=xdict['MODSEL']
+    lhwf.write('Block '+modsel.name+'\n')
+    for kk, vv in sorted(modsel.entries.iteritems()):
+        lhwf.write(sep+'%g  %g\n' %(kk,vv))
+
+    modsel=xdict['MINPAR']
+    lhwf.write('Block '+modsel.name+'\n')
+    for kk, vv in sorted(modsel.entries.iteritems()):
+        lhwf.write(sep+'%g  %g\n' %(kk,vv))
+
+    for k, v in sorted(xdict.iteritems()):
+        if v.name!='MODSEL' and v.name!='MINPAR' and v.name!='MASS':
+            lhwf.write('Block '+v.name+'\n')
+            for kk, vv in sorted(v.entries.iteritems()):
+                lhwf.write(sep+'%d  %g\n' %(kk,vv))
+
+    lhwf.close()
 
 if __name__ == '__main__':
-    #Change some entry of LesHouches dictionary:
-    LesHouches['SMINPUTS'].entries[1]=1.28E+02
-    #Write SLHA file
-    pyslha.writeSLHAFile('LesHouches_new.in',LesHouches,{})
-    #obtain vd, and mu
-    vd=200.
-    mu=400.
     #Loop over initial x
-    x=np.random.uniform(-1,1,3)
+    x0=np.random.uniform(-1,1,6)
     #find the minumum
-    #.....
-    print chisq(x)
+    print chisq(x0)
+    print scipy.optimize.fmin_powell(chisq,x0,\
+                xtol=1E-14,ftol=1E-14,full_output=1)
+    check_slha('SPheno.spc')
 
 
+    #DEBUG====
+    spc,decays=pyslha.readSLHAFile('SPheno.spc')
+    eps=np.asarray(spc['RVKAPPA'].entries.values())
+    vi=np.asarray(spc['RVSNVEV'].entries.values())
+    x=np.concatenate((eps,vi))
+    Lam=np.asarray(spc['SPHENORP'].entries.values()[0:3])
+    vd=spc['SPHENORP'].entries[15]
+    mu=((Lam-vd*eps)/vi)[0]
+    #==========
+    
 
 #3E-02 0.6 ! epsilon_1
 #1.E-05 1. ! epsilon_2
