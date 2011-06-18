@@ -11,22 +11,25 @@ sphenocmd='SPheno_intel'
 LesHouches,decaysin=pyslha.readSLHAFile('LesHouches_MASS.in')
 #to modify the dictionary of clases:
 LesHouches['SPHENOINPUT'].entries[91]=0
-#to write the changes
-#pyslha.writeSLHAFile('LesHouches.in',LesHouches,decaysin)
 
-def changeLesHouchesinFile(x):
+def changeLHAinFile(x):
     """Change specfic entries of the global dictionary:
     LesHouches"""
     for i in range(1,4):
-        LesHouches['RVKAPPAIN'].entries[i]=x[i-1]
-        LesHouches['RVSNVEVIN'].entries[i]=x[i+2]
-#    LesHouches['RVKAPPA'].entries[1]=x[1]
+        LesHouches['RVKAPPAIN'].entries[i]=x[i-1] # epsilon_i
+        LesHouches['RVSNVEVIN'].entries[i]=x[i+2] # v_L_i
 
-#    pyslha.writeSLHAFile(lhinfile,LesHouches,decaysin)
-
+def writeLHAinFile(xdict,lhinfile='LesHouches.in'):
+    '''To write LesHouches.in in the right order.'''
+    LesHouches2={'AMODSEL':xdict['MODSEL'],'BSMINPUTS':xdict['SMINPUTS'],\
+                 'CMINPAR':xdict['MINPAR'],'DEXTPAR':xdict['EXTPAR'],\
+                 'ERVSNVEVIN':xdict['RVSNVEVIN'],'FRVKAPPAIN':xdict['RVKAPPAIN'],\
+                 'GSPhenoInput':xdict['SPHENOINPUT'],\
+                 'HNEUTRINOBOUNDSIN':xdict['NEUTRINOBOUNDSIN']}
+    pyslha.writeSLHAFile(lhinfile,LesHouches2,{})
 
 def buildslhafile():
-    """Usage of pyslha to generate one SLHA file"""
+    """DEBUG: Usage of pyslha to generate one SLHA file"""
     #Initialize dictionary of block clases
     slhafile={}
     #define block class
@@ -79,7 +82,7 @@ def check_slha(spcfile):
     print 'tan(theta12)=U[0,1]/U[0,0]=>sin^2(theta12)=%.2f' %s212
     print ' %.2f < sin^2(theta12)_{exp} < %.2f' %(s212r[0],s212r[1])
     print 'U_13^2=%.3f' %(abs(U13**2))
-    print 'U_13_{exp}<%.3f' %U213
+    print 'U_13_{exp}<%.3f' %U213        
 
 def chisq(x):
     '''Function to be optimized
@@ -90,24 +93,19 @@ def chisq(x):
     eps=x[0:3]
     vi=x[3:6]
     #change LesHouches dictionary:
-    changeLesHouchesinFile(x)
+    changeLHAinFile(x)
     #generate LesHouches file:
-    lha(LesHouches,'LesHouches.in')
+    writeLHAinFile(LesHouches,'LesHouches.in')
     #Run Spheno
     lsout=commands.getoutput(sphenocmd)
     (Delta2m32,Delta2m21,s223,s212,U13)=oscilation('SPheno.spc')
-    #constants for chisq
+    #constants going into the chisq:
     s212r=0.304;s223r=0.5
     U213=0.001
     m22=2.40E-3;m21=7.65E-5
-    return np.abs(s212-s212r)/s212r+np.abs(s223-s223r)/s223r+np.abs(Delta2m32-m22)/m22+np.abs(Delta2m21-m21)/m21+np.abs(U13**2)#-U213)/U213
-
-
-def sphenorndm(epsmin,epsmax,Lammin,Lammax,mu,vd,sign):
-    """DEBUG"""
-    eps=np.random.uniform(-1,1,3)
-    Lambda=np.random.uniform(-1,1,3)
-    vi=(Lambda-eps*vd)/mu
+    return np.abs(s212-s212r)/s212r+np.abs(s223-s223r)/s223r\
+           +np.abs(Delta2m32-m22)/m22+np.abs(Delta2m21-m21)/m21\
+           +np.abs(U13**2)#-U213)/U213
 
 def random_search():
     """DEBUG"""
@@ -118,42 +116,19 @@ def random_search():
     sign=False
     sgn=lambda n: (-1)**np.random.random_integers(1,2,n)
 
-def lha(xdict,lhinfile='LesHouches.in'):
-    "xdict is the dictionary"
-    sep = "     "
-    if type(lhinfile) is str:
-        lhwf=open(lhinfile,'w')
-    else:
-        sys.exit()
-
-    #write main blocks:
-    modsel=xdict['MODSEL']
-    lhwf.write('Block '+modsel.name+'\n')
-    for kk, vv in sorted(modsel.entries.iteritems()):
-        lhwf.write(sep+'%g  %g\n' %(kk,vv))
-
-    modsel=xdict['MINPAR']
-    lhwf.write('Block '+modsel.name+'\n')
-    for kk, vv in sorted(modsel.entries.iteritems()):
-        lhwf.write(sep+'%g  %g\n' %(kk,vv))
-
-    for k, v in sorted(xdict.iteritems()):
-        if v.name!='MODSEL' and v.name!='MINPAR' and v.name!='MASS':
-            lhwf.write('Block '+v.name+'\n')
-            for kk, vv in sorted(v.entries.iteritems()):
-                lhwf.write(sep+'%d  %g\n' %(kk,vv))
-
-    lhwf.close()
+def searchmin(x0):
+    '''Find the minimum'''
+    return scipy.optimize.fmin_powell(chisq,x0,\
+                xtol=1E-14,ftol=1E-14,full_output=1)[1]
 
 if __name__ == '__main__':
     #Loop over initial x
-    x0=np.random.uniform(-1,1,6)
+    x0=np.random.uniform(-0.12,0.12,6)
+    x0=x0*np.array([1,1,1,0.67,0.67,0.67])
     #find the minumum
     print chisq(x0)
-    print scipy.optimize.fmin_powell(chisq,x0,\
-                xtol=1E-14,ftol=1E-14,full_output=1)
+    print searchmin(x0)
     check_slha('SPheno.spc')
-
 
     #DEBUG====
     spc,decays=pyslha.readSLHAFile('SPheno.spc')
