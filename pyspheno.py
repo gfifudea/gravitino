@@ -8,9 +8,8 @@ import sys
 global sphenocmd,LesHouches,decaysin
 sphenocmd='SPheno_intel'
 
+#Must hava the MASS block to be read
 LesHouches,decaysin=pyslha.readSLHAFile('LesHouches_MASS.in')
-#to modify the dictionary of clases:
-LesHouches['SPHENOINPUT'].entries[91]=0
 
 def changeLHAinFile(x):
     """Change specfic entries of the global dictionary:
@@ -19,39 +18,42 @@ def changeLHAinFile(x):
         LesHouches['RVKAPPAIN'].entries[i]=x[i-1] # epsilon_i
         LesHouches['RVSNVEVIN'].entries[i]=x[i+2] # v_L_i
 
-def writeLHAinFile(xdict,lhinfile='LesHouches.in'):
+def FilterDecay(xdict,pid=1000022,nda=3,pdaug=11):
+    '''Build filtered pyslha decay dictionary from:
+         xdict
+       original pyslha dictionary, for particle number:
+         pid
+       decaying into:
+         nda
+       particles, with:
+         pdaug
+       between the daughters
+    '''
+    prtclnda=pyslha.Particle(pid,xdict[pid].totalwidth,xdict[pid].mass)
+    filterdict={}
+    if nda==3:
+        prtclnda.decays=[channel for channel in xdict[pid].decays if channel.nda==nda \
+                        and (abs(channel.ids[0])==pdaug or abs(channel.ids[1])==pdaug \
+                             or abs(channel.ids[2])==pdaug)]
+
+    if nda==2:
+        prtclnda.decays=[channel for channel in xdict[pid].decays if channel.nda==nda \
+                        and (abs(channel.ids[0])==pdaug or abs(channel.ids[1])==pdaug)]
+
+    filterdict[pid]=prtclnda
+    return filterdict
+
+def writeLHAinFile(xdict,lhinfile='LesHouches.in',universal=True):
     '''To write LesHouches.in in the right order.'''
+    if universal:
+        xdict['EXTPAR'].entries={}
+        
     LesHouches2={'AMODSEL':xdict['MODSEL'],'BSMINPUTS':xdict['SMINPUTS'],\
                  'CMINPAR':xdict['MINPAR'],'DEXTPAR':xdict['EXTPAR'],\
                  'ERVSNVEVIN':xdict['RVSNVEVIN'],'FRVKAPPAIN':xdict['RVKAPPAIN'],\
                  'GSPhenoInput':xdict['SPHENOINPUT'],\
                  'HNEUTRINOBOUNDSIN':xdict['NEUTRINOBOUNDSIN']}
     pyslha.writeSLHAFile(lhinfile,LesHouches2,{})
-
-def buildslhafile():
-    """DEBUG: Usage of pyslha to generate one SLHA file"""
-    #Initialize dictionary of block clases
-    slhafile={}
-    #define block class
-    MODSEL=pyslha.Block('MODSEL')
-    #Add entries to the class
-    MODSEL.entries[1]=1
-    #Add class to dictionary
-    slhafile['MODSEL']=MODSEL
-    #====================
-    SMINPUTS=pyslha.Block('SMINPUTS')   # Standard Model inputs
-    SMINPUTS.entries[1]=   1.279340E+02       # alpha_rm^-1(M_Z), MSbar, SM
-    SMINPUTS.entries[2]=   1.166390E-05       # G_F, Fermi constant
-    SMINPUTS.entries[3]=   1.172000E-01       # alpha_s(MZ) SM MSbar
-    SMINPUTS.entries[4]=   9.118760E+01       # Z-boson pole mass
-    SMINPUTS.entries[5]=   4.250000E+00       # m_b(mb) SM MSbar
-    SMINPUTS.entries[6]=   1.727000E+02       # m_top(pole)
-    SMINPUTS.entries[7]=   1.777000E+00       # m_tau(pole)
-    slhafile['SMINPUTS']=SMINPUTS
-    #====================
-    return slhafile 
-
-
 
 def oscilation(spcfile):
     """oscilation parameters"""
@@ -107,40 +109,68 @@ def chisq(x):
            +np.abs(Delta2m32-m22)/m22+np.abs(Delta2m21-m21)/m21\
            +np.abs(U13**2)#-U213)/U213
 
-def random_search():
-    """DEBUG"""
-    epsmax=np.array([1,1,1])
-    epsmin=np.array([-1,-1,-1])
-    Lammax=np.array([1,1,1])
-    Lammin=np.array([-1,-1,-1])
-    sign=False
-    sgn=lambda n: (-1)**np.random.random_integers(1,2,n)
+def ranlog(vmin,vmax,dim=()):
+    '''Random number generation uniformelly for
+    a range expanding several orders of magnitude'''
+    return np.exp((np.log(vmax)-np.log(vmin))*np.random.uniform(0,1,dim)+np.log(vmin))*(-1)**np.random.random_integers(0,1,dim)
 
 def searchmin(x0):
     '''Find the minimum'''
     return scipy.optimize.fmin_powell(chisq,x0,\
                 xtol=1E-14,ftol=1E-14,full_output=1)[1]
 
+def optloop(ifin=1,minimum=False,mu=100,vd=100):
+    '''main Loop'''
+    if minimum:
+        X0=np.random.uniform(-0.12,0.12,(ifin,6))        
+    else:
+        eps=ranlog(1E-5,1,(ifin,3))
+        Lam1=ranlog(1E-5,6E-02,(ifin,1))
+        Lam=np.hstack([Lam1,ranlog(3E-2,7E-01,(ifin,2))])
+        vL=(Lam-vd*eps)/mu
+        X0=np.hstack([eps,vL])
+
+    if minimum:
+        argfmin=np.array([searchmin(x0) for x0 in X0]).argmin()
+        xmin=searchmin(X0[argfmin])
+    else:
+        argfmin=np.array([chisq(x0) for x0 in X0]).argmin()
+        xmin=X0[argfmin]
+
+    return xmin
+    
 if __name__ == '__main__':
     #Loop over initial x
-    x0=np.random.uniform(-0.12,0.12,6)
-    x0=x0*np.array([1,1,1,0.67,0.67,0.67])
-    #find the minumum
-    print chisq(x0)
-    print searchmin(x0)
-    check_slha('SPheno.spc')
+    #to modify the dictionary of clases:
+    LesHouches['SPHENOINPUT'].entries[91]=0
+    minimum=False
+    if minimum:
+        ifin=1
+        mu=100;vd=100 #not used at all
+    else:
+        ifin=100000
 
-    #DEBUG====
+    #obtain vd and mu for msugra fixed parameters
+    LesHouches['SPHENOINPUT'].entries[91]=1
+    writeLHAinFile(LesHouches,'LesHouches.in')
+    lsout=commands.getoutput(sphenocmd)
     spc,decays=pyslha.readSLHAFile('SPheno.spc')
-    eps=np.asarray(spc['RVKAPPA'].entries.values())
-    vi=np.asarray(spc['RVSNVEV'].entries.values())
-    x=np.concatenate((eps,vi))
-    Lam=np.asarray(spc['SPHENORP'].entries.values()[0:3])
     vd=spc['SPHENORP'].entries[15]
-    mu=((Lam-vd*eps)/vi)[0]
-    #==========
-    
+    #mu=((Lamda-vd*epsilon)/vi)
+    mu=(spc['SPHENORP'].entries.values()[1]\
+        -vd*spc['RVKAPPA'].entries.values()[1])\
+        /spc['RVSNVEV'].entries.values()[1]
 
+    #Turn off neutrino fit
+    LesHouches['SPHENOINPUT'].entries[91]=0
+
+    x0=optloop(ifin,minimum,mu,vd)        
+    #check neutrino fit Function
+    print chisq(x0)
+    #print 
+    check_slha('SPheno.spc')
+    
+#Fron RpParaneters.dat in SPhenoRP_intel/test
 #3E-02 0.6 ! epsilon_1
 #1.E-05 1. ! epsilon_2
 #1.E-05 1. ! epsilon_3
