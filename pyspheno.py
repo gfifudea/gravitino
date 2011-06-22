@@ -193,13 +193,23 @@ def ranlog(vmin,vmax,dim=()):
 
 def searchmin(x0):
     '''Find the minimum'''
+    #    return scipy.optimize.fmin_powell(chisq,x0,\
+    #                xtol=1E-14,ftol=1E-14,full_output=1)[1]
     return scipy.optimize.fmin_powell(chisq,x0,\
-                xtol=1E-14,ftol=1E-14,full_output=1)[1]
+                full_output=1)
+
+
 
 def optloop(ifin=1,minimum=False,mu=100,vd=100):
     '''main Loop'''
+    np.random.seed(1)
     if minimum:
-        X0=np.random.uniform(-0.12,0.12,(ifin,6))        
+#        X0=np.random.uniform(-0.12,0.12,(ifin,6))
+        eps=ranlog(1E-5,1,(ifin,3))
+        Lam1=ranlog(1E-5,6E-02,(ifin,1))
+        Lam=np.hstack([Lam1,ranlog(3E-2,7E-01,(ifin,2))])
+        vL=(Lam-vd*eps)/mu
+        X0=np.hstack([eps,vL])
     else:
         eps=ranlog(1E-5,1,(ifin,3))
         Lam1=ranlog(1E-5,6E-02,(ifin,1))
@@ -208,8 +218,12 @@ def optloop(ifin=1,minimum=False,mu=100,vd=100):
         X0=np.hstack([eps,vL])
 
     if minimum:
-        argfmin=np.array([searchmin(x0) for x0 in X0]).argmin()
-        xmin=searchmin(X0[argfmin])
+        fmin=1E16
+        for x0 in X0:
+            sm=searchmin(x0)
+            if sm[1] < fmin:
+                fmin=sm[1]
+                xmin=sm[0]
     else:
         argfmin=np.array([chisq(x0) for x0 in X0]).argmin()
         xmin=X0[argfmin]
@@ -222,7 +236,7 @@ if __name__ == '__main__':
     LesHouches=buildLHAinFile() #see below
     #to modify the dictionary of clases:
     LesHouches['SPHENOINPUT'].entries[91]=0
-    minimum=False
+    minimum=True #False
     if minimum:
         ifin=1
         mu=100;vd=100 #not used at all
