@@ -8,7 +8,7 @@ if __name__ == '__main__':
 
     #Loop over initial x
     #obtain vd and mu for msugra fixed parameters
-    pyspheno.LesHouches['SPHENOINPUT'].entries[91]=1
+    LesHouches['SPHENOINPUT'].entries[91]=1
     #m12min=200;m12max=800
     #m0min=200;m0max=1000
     m12min=70;m12max=70
@@ -16,10 +16,10 @@ if __name__ == '__main__':
     step=50
     for m12 in pyspheno.np.arange(m12min,m12max+step,step):
         for m0 in pyspheno.np.arange(m0min,m0max+step,step):
-            pyspheno.LesHouches['MINPAR'].entries[1]=m0
-            pyspheno.LesHouches['MINPAR'].entries[2]=m12
-            pyspheno.writeLHAinFile(pyspheno.LesHouches,'LesHouches.in')
-            lsout=commands.getoutput(pyspheno.sphenocmd)
+            LesHouches['MINPAR'].entries[1]=m0
+            LesHouches['MINPAR'].entries[2]=m12
+            pyspheno.writeLHAinFile(LesHouches,'LesHouches.in')
+            lsout=commands.getoutput(sphenocmd)
             spc,decays=pyspheno.pyslha.readSLHAFile('SPheno.spc')
             chietau=pyspheno.filterDecay(pyspheno.filterDecay(decays,1000022,11),1000022,15)
             chietaubr=sum([x.br for x in chietau[1000022].decays])
