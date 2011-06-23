@@ -220,7 +220,7 @@ def searchmin(x0,xdict):
 
 def optloop(ifin,xdict,minimum=False,mu=100,vd=100):
     '''main Loop'''
-    np.random.seed(1)
+    #np.random.seed(1)
     if minimum:
 #        X0=np.random.uniform(-0.12,0.12,(ifin,6))
         eps=ranlog(1E-5,1,(ifin,3))
