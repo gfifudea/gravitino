@@ -91,12 +91,12 @@ def buildLHAinFile(universal=True):
     #====================
     return xdict 
 
-def changeLHAinFile(x):
-    """Change specfic entries of the global dictionary:
-    LesHouches"""
+def changeLHAinFile(x,xdict):
+    """Change specfic entries of the xdict dictionary:
+    """
     for i in range(1,4):
-        LesHouches['RVKAPPAIN'].entries[i]=x[i-1] # epsilon_i
-        LesHouches['RVSNVEVIN'].entries[i]=x[i+2] # v_L_i
+        xdict['RVKAPPAIN'].entries[i]=x[i-1] # epsilon_i
+        xdict['RVSNVEVIN'].entries[i]=x[i+2] # v_L_i
 
 def writeLHAinFile(xdict,lhinfile='LesHouches.in',universal=True):
     '''To write LesHouches.in in the right order.'''
@@ -163,7 +163,7 @@ def check_slha(spcfile):
     print 'U_13^2=%.3f' %(abs(U13**2))
     print 'U_13_{exp}<%.3f' %U213        
 
-def chisq(x):
+def chisq(x,xdict):
     '''Function to be optimized
     input: x -> array
              x[0:3] 
@@ -171,10 +171,10 @@ def chisq(x):
              '''
     eps=x[0:3]
     vi=x[3:6]
-    #change LesHouches dictionary:
-    changeLHAinFile(x)
+    #change xdict dictionary:
+    changeLHAinFile(x,xdict)
     #generate LesHouches file:
-    writeLHAinFile(LesHouches,'LesHouches.in')
+    writeLHAinFile(xdict,'LesHouches.in')
     #Run Spheno
     lsout=commands.getoutput(sphenocmd)
     (Delta2m32,Delta2m21,s223,s212,U13)=oscilation('SPheno.spc')
@@ -188,19 +188,20 @@ def chisq(x):
 
 def ranlog(vmin,vmax,dim=()):
     '''Random number generation uniformelly for
-    a range expanding several orders of magnitude'''
+    a range expanding several orders of magnitude
+    and random signs.'''
     return np.exp((np.log(vmax)-np.log(vmin))*np.random.uniform(0,1,dim)+np.log(vmin))*(-1)**np.random.random_integers(0,1,dim)
 
-def searchmin(x0):
+def searchmin(x0,xdict):
     '''Find the minimum'''
     #    return scipy.optimize.fmin_powell(chisq,x0,\
     #                xtol=1E-14,ftol=1E-14,full_output=1)[1]
-    return scipy.optimize.fmin_powell(chisq,x0,\
+    return scipy.optimize.fmin_powell(chisq,x0,args=(xdict,),\
                 full_output=1)
 
 
 
-def optloop(ifin=1,minimum=False,mu=100,vd=100):
+def optloop(ifin,xdict,minimum=False,mu=100,vd=100):
     '''main Loop'''
     np.random.seed(1)
     if minimum:
@@ -220,23 +221,23 @@ def optloop(ifin=1,minimum=False,mu=100,vd=100):
     if minimum:
         fmin=1E16
         for x0 in X0:
-            sm=searchmin(x0)
+            sm=searchmin(x0,xdict)
             if sm[1] < fmin:
                 fmin=sm[1]
                 xmin=sm[0]
     else:
-        argfmin=np.array([chisq(x0) for x0 in X0]).argmin()
+        argfmin=np.array([chisq(x0,xdict) for x0 in X0]).argmin()
         xmin=X0[argfmin]
 
     return xmin
     
 if __name__ == '__main__':
-    global sphenocmd,LesHouches
+    global sphenocmd 
     sphenocmd='SPheno_intel'
     LesHouches=buildLHAinFile() #see below
     #to modify the dictionary of clases:
     LesHouches['SPHENOINPUT'].entries[91]=0
-    minimum=True #False
+    minimum=True
     if minimum:
         ifin=1
         mu=100;vd=100 #not used at all
@@ -257,9 +258,9 @@ if __name__ == '__main__':
     #Turn off neutrino fit
     LesHouches['SPHENOINPUT'].entries[91]=0
 
-    x0=optloop(ifin,minimum,mu,vd)        
+    x0=optloop(ifin,LesHouches,minimum,mu,vd)        
     #check neutrino fit Function
-    print chisq(x0)
+    print chisq(x0,LesHouches)
     #print 
     check_slha('SPheno.spc')
     

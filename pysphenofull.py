@@ -2,7 +2,7 @@
 import pyspheno
 import commands
 if __name__ == '__main__':
-    global sphenocmd,LesHouches
+    global sphenocmd 
     sphenocmd='SPheno_intel'
     LesHouches=pyspheno.buildLHAinFile() #see below
 
