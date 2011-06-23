@@ -11,8 +11,8 @@ if __name__ == '__main__':
     LesHouches['SPHENOINPUT'].entries[91]=1
     #m12min=200;m12max=800
     #m0min=200;m0max=1000
-    m12min=70;m12max=70
-    m0min=100;m0max=100
+    m12min=240;m12max=240
+    m0min=1000;m0max=1000
     step=50
     for m12 in pyspheno.np.arange(m12min,m12max+step,step):
         for m0 in pyspheno.np.arange(m0min,m0max+step,step):

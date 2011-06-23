@@ -1,13 +1,18 @@
 #!/usr/bin/env python
+'''
+Modules to run and analyse SPheno. Current implementation icludes:
+* Gneration of general LesHouches dictionary.
+* Change RVKAPPAIN and RVSNVEVIN from a six component vector
+* Gneration of general LesHouches.in file.
+* Filter Decays Block.
+* ranlog: for generate random numbers in ranges of several orders
+  of magnitude
+* Funtions to analyse neutrino solutions
+'''
 import numpy as np
 import scipy.optimize 
 import commands
 import pyslha
-import sys
-
-#DEBUG: get rid of global variable: LesHouches.
-#Must have the MASS block to be read
-#LesHouches,decaysin=pyslha.readSLHAFile('LesHouches_MASS.in')
 
 def buildLHAinFile(universal=True):
     """Usage of pyslha.Block to generate one LesHouches.in file"""
@@ -112,23 +117,35 @@ def writeLHAinFile(xdict,lhinfile='LesHouches.in',universal=True):
     pyslha.writeSLHAFile(lhinfile,LesHouches2,{})
 
 
-def filterDecay(xdict,pid,pdaug):
+def filterDecaySign(xdict,pid,pdaug):
     '''Build filtered pyslha decay dictionary from:
          xdict
-       original pyslha dictionary, for particle number:
+       original pyslha dictionary, for PDG PI  number:
          pid
-       decaying into a set of particles which includes
+       decaying into a set of particles which includes PDG PI
          pdaug
        between the daughters.
     '''
     prtclnda=pyslha.Particle(pid,xdict[pid].totalwidth,xdict[pid].mass)
     filterdict={}
-    list1=[channel for channel in xdict[pid].decays if channel.nda==2 \
-                and (abs(channel.ids[0])==pdaug or abs(channel.ids[1])==pdaug)]
-    prtclnda.decays=list1+[channel for channel in xdict[pid].decays \
-                        if channel.nda==3 and \
-                      (abs(channel.ids[0])==pdaug or abs(channel.ids[1])==pdaug \
-                         or abs(channel.ids[2])==pdaug)]
+    prtclnda.decays=[channel for channel in xdict[pid].decays \
+           if pdaug in channel.ids]
+    filterdict[pid]=prtclnda
+    return filterdict
+
+def filterDecay(xdict,pid,pdaug):
+    '''Build filtered pyslha decay dictionary from:
+         xdict
+       original pyslha dictionary, for PDG PI  number:
+         pid
+       decaying into a set of particles which includes PDG PI
+         |pdaug|
+       between the daughters.
+    '''
+    prtclnda=pyslha.Particle(pid,xdict[pid].totalwidth,xdict[pid].mass)
+    filterdict={}
+    prtclnda.decays=[channel for channel in xdict[pid].decays \
+           if pdaug in np.abs(np.asarray(channel.ids))]
     filterdict[pid]=prtclnda
     return filterdict
 
