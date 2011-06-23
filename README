@@ -1,0 +1,6 @@
+Modules to run and analyse SPheno with python.
+The main modules with some sample code at the end, is in:
+  pyspheno.py
+Example of use to scan the msugra parameter space is in
+  pysphenofull.py
+
