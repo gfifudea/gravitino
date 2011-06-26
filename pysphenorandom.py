@@ -122,8 +122,8 @@ def optloop(ifin,xdict,minimum=False,mu=100,vd=100):
             if sm < fmin:
                 fmin=sm
                 xmin=x0
-                if i%1000==0: print i
-                
+
+            if i%1000==0: print i
             i=1+i
 
 #        argfmin=np.array([chisq(x0,xdict) for x0 in X0]).argmin()
@@ -141,7 +141,7 @@ if __name__ == '__main__':
         ifin=1
         mu=100;vd=100 #not used at all
     else:
-        ifin=1#100000
+        ifin=100000
 
     #obtain vd and mu for msugra fixed parameters
     LesHouches['SPHENOINPUT'].entries[91]=1
