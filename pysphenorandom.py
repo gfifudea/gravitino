@@ -92,7 +92,7 @@ def searchmin(x0,xdict):
 
 def optloop(ifin,xdict,minimum=False,mu=100,vd=100):
     '''main Loop'''
-    #np.random.seed(1)
+    np.random.seed(1)
     if minimum:
 #        X0=np.random.uniform(-0.12,0.12,(ifin,6))
         eps=ranlog(1E-5,1,(ifin,3))
@@ -115,19 +115,8 @@ def optloop(ifin,xdict,minimum=False,mu=100,vd=100):
                 fmin=sm[1]
                 xmin=sm[0]
     else:
-        fmin=1E16
-        i=0
-        for x0 in X0:
-            sm=chisq(x0,xdict,sphenocmd)
-            if sm < fmin:
-                fmin=sm
-                xmin=x0
-
-            if i%1000==0: print i
-            i=1+i
-
-#        argfmin=np.array([chisq(x0,xdict) for x0 in X0]).argmin()
-#        xmin=X0[argfmin]
+        fun=np.apply_along_axis(chisq,1,X0,xdict,sphenocmd)
+        xmin=np.concatenate((X0,np.vstack(fun)),axis=1)
 
     return xmin
     
@@ -141,7 +130,7 @@ if __name__ == '__main__':
         ifin=1
         mu=100;vd=100 #not used at all
     else:
-        ifin=100000
+        ifin=1000
 
     #obtain vd and mu for msugra fixed parameters
     LesHouches['SPHENOINPUT'].entries[91]=1
@@ -161,7 +150,8 @@ if __name__ == '__main__':
     #Turn off neutrino fit
     LesHouches['SPHENOINPUT'].entries[91]=0
 
-    x0=optloop(ifin,LesHouches,minimum,mu,vd)        
+    B=optloop(ifin,LesHouches,minimum,mu,vd)
+    x0=B[:,0:-1][B[:,-1].argmin()]
     #check neutrino fit Function
     print chisq(x0,LesHouches,sphenocmd)
     #print 
