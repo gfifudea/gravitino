@@ -70,10 +70,12 @@ def chisq(x,xdict,sphenocmd):
     #constants going into the chisq:
     s212r=0.304;s223r=0.5
     U213=0.001
-    m22=2.40E-3;m21=7.65E-5
-    return np.abs(s212-s212r)/s212r+np.abs(s223-s223r)/s223r\
-           +np.abs(Delta2m32-m22)/m22+np.abs(Delta2m21-m21)/m21\
-           +np.abs(U13**2)#-U213)/U213
+    m22=2.40;m21=7.65
+    if U13**2<0.056:
+        return ((s212-s212r)/0.07)**2+((s223-s223r)/0.165)**2\
+           +((1E3*Delta2m32-m22)/0.4)**2+((1E5*Delta2m21-m21)/0.6)**2
+    else:
+        return 10.
 
 def ranlog(vmin,vmax,dim=()):
     '''Random number generation uniformelly for
@@ -92,7 +94,7 @@ def searchmin(x0,xdict):
 
 def optloop(ifin,xdict,minimum=False,mu=100,vd=100):
     '''main Loop'''
-    np.random.seed(1)
+    #np.random.seed(1)
     if minimum:
 #        X0=np.random.uniform(-0.12,0.12,(ifin,6))
         eps=ranlog(1E-5,1,(ifin,3))
@@ -121,10 +123,13 @@ def optloop(ifin,xdict,minimum=False,mu=100,vd=100):
     return xmin
     
 if __name__ == '__main__':
+    m0=1000.
+    m12=500.
     sphenocmd='SPheno_intel'
     LesHouches=buildLHAinFile() #see below
-    #to modify the dictionary of clases:
-    LesHouches['SPHENOINPUT'].entries[91]=0
+    LesHouches['MINPAR'].entries[1]=m0
+    LesHouches['MINPAR'].entries[2]=m12
+
     minimum=False
     if minimum:
         ifin=1
