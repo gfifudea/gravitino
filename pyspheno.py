@@ -93,17 +93,21 @@ def buildLHAinFile(universal=True):
     #====================
     return xdict 
 
-def writeLHAinFile(xdict,lhinfile='LesHouches.in',universal=True):
+def writeLHAinFile(xdict,lhinfile='LesHouches.in',universal=True,RP=False):
     '''To write LesHouches.in in the right order.'''
     LesHouches2={}
     LesHouches2['AMODSEL']=xdict['MODSEL']
     LesHouches2['BSMINPUTS']=xdict['SMINPUTS']
     LesHouches2['CMINPAR']=xdict['MINPAR']
     if not universal: LesHouches2['DEXTPAR']=xdict['EXTPAR']
-    LesHouches2['ERVSNVEVIN']=xdict['RVSNVEVIN']
-    LesHouches2['FRVKAPPAIN']=xdict['RVKAPPAIN']
+    if not RP:
+        LesHouches2['ERVSNVEVIN']=xdict['RVSNVEVIN']
+        LesHouches2['FRVKAPPAIN']=xdict['RVKAPPAIN']
+        
     LesHouches2['GSPhenoInput']=xdict['SPHENOINPUT']
-    LesHouches2['HNEUTRINOBOUNDSIN']=xdict['NEUTRINOBOUNDSIN']
+    if not RP:
+        LesHouches2['HNEUTRINOBOUNDSIN']=xdict['NEUTRINOBOUNDSIN']
+        
     pyslha.writeSLHAFile(lhinfile,LesHouches2,{})
 
 
