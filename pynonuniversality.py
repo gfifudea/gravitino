@@ -154,13 +154,6 @@ def zoom(frame=False):
     plt.ylim(1E-17,1E-14)
     plt.xlabel('')
     plt.ylabel('')
-
-def U2sgnuf(x):
-    Ni1=x[0:3]
-    Ni2=x[3:6]
-    thw=x[6]
-    return np.dot(np.cos(thw)*Ni1+np.sin(thw)*Ni2,\
-                              np.cos(thw)*Ni1+np.sin(thw)*Ni2)
     
 if __name__ == '__main__':
     '''Variables
@@ -209,8 +202,8 @@ if __name__ == '__main__':
                 M=np.asarray([spc['EXTPAR'].entries[i] for i in range(4)])
                 Ni1=np.asarray([spc['RVNMIX'].entries[i][1] for i in range(1,4)])
                 Ni2=np.asarray([spc['RVNMIX'].entries[i][2] for i in range(1,4)])
-                xin=np.hstack((Ni1,Ni2,thw))
-                U2sgnu=U2sgnuf(xin)
+                U2sgnu=np.dot(np.cos(thw)*Ni1+np.sin(thw)*Ni2,\
+                              np.cos(thw)*Ni1+np.sin(thw)*Ni2)
                 chi_10=spc['MASS'].entries[1000022]
                 chi_20=spc['MASS'].entries[1000023]
                 appU2sgnu=analyticalU2sgnu(spcfile)
