@@ -75,7 +75,7 @@ def chisq(x,xdict,sphenocmd):
         return ((s212-s212r)/0.07)**2+((s223-s223r)/0.165)**2\
            +((1E3*Delta2m32-m22)/0.4)**2+((1E5*Delta2m21-m21)/0.6)**2
     else:
-        return 10.
+        return 10E6
 
 def ranlog(vmin,vmax,dim=()):
     '''Random number generation uniformelly for
@@ -95,6 +95,7 @@ def searchmin(x0,xdict):
 def optloop(ifin,xdict,minimum=False,mu=100,vd=100):
     '''main Loop'''
     #np.random.seed(1)
+    chisqmin=200
     if minimum:
 #        X0=np.random.uniform(-0.12,0.12,(ifin,6))
         eps=ranlog(1E-5,1,(ifin,3))
@@ -120,7 +121,7 @@ def optloop(ifin,xdict,minimum=False,mu=100,vd=100):
         fun=np.apply_along_axis(chisq,1,X0,xdict,sphenocmd)
         xmin=np.concatenate((X0,np.vstack(fun)),axis=1)
 
-    return xmin
+    return xmin[xmin[:,6]<chisqmin]
     
 if __name__ == '__main__':
     m0=1000.
@@ -156,11 +157,12 @@ if __name__ == '__main__':
     LesHouches['SPHENOINPUT'].entries[91]=0
 
     B=optloop(ifin,LesHouches,minimum,mu,vd)
-    x0=B[:,0:-1][B[:,-1].argmin()]
-    #check neutrino fit Function
-    print chisq(x0,LesHouches,sphenocmd)
-    #print 
-    check_slha('SPheno.spc')
+    if list(B)!=[]: 
+        x0=B[:,0:-1][B[:,-1].argmin()]
+        #check neutrino fit Function
+        print chisq(x0,LesHouches,sphenocmd)
+        #print 
+        check_slha('SPheno.spc')
     
 #Fron RpParaneters.dat in SPhenoRP_intel/test
 #3E-02 0.6 ! epsilon_1

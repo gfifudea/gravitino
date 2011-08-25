@@ -5,9 +5,6 @@ Modules to run and analyse SPheno. Current implementation icludes:
 * Change RVKAPPAIN and RVSNVEVIN from a six component vector
 * Gneration of general LesHouches.in file.
 * Filter Decays Block.
-* ranlog: for generate random numbers in ranges of several orders
-  of magnitude
-* Funtions to analyse neutrino solutions
 '''
 import pyslha
 
